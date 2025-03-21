@@ -1,23 +1,21 @@
 from socket import *
 import time
 import struct
-
+from colorama import Fore, Style
 try:
     sock = socket(AF_PACKET, SOCK_RAW, ntohs(0x0003))  # ipv4, tcp
-    sock.bind(("any", 0))
-    print("Socket created.")
+    sock.bind(("lo", 0))
+    print(Fore.GREEN + "[+] Socket created Succesfully." + Style.RESET_ALL)
 except error as err:
-    print("Couldn't create socket:", err)
+    print(Fore.RED + "[-] Couldn't create socket", err, Style.RESET_ALL)
+    exit(1)
 
-print("Socket is listening...\n")
+print(Fore.BLUE + "[*] Listening for packets...\n" + Style.RESET_ALL)
 
-while True:
-    packet, addr = sock.recvfrom(65565)  # for packets upto size 65565
-    # print("Got tcp packet from:", addr)
-    # print()
 
-    # IP Header Unpacking
-    ip_header = packet[14:34]
+def extract_ip_header(packet):
+    eth_header_size = 14
+    ip_header = packet[eth_header_size:eth_header_size + 20]
     ip_header_unpacked = struct.unpack("!BBHHHBBH4s4s", ip_header)
 
     '''
@@ -38,24 +36,66 @@ while True:
     packet_size = ip_header_unpacked[2]
     ttl = ip_header_unpacked[5]
 
-    # TCP Header Unpacking
-    tcp_header = packet[ip_header_length + 14: ip_header_length + 34]
-    tcp_header_unpacked = struct.unpack("!HHIIHHHH", tcp_header)
+    return {
+        "src_ip": src_ip,
+        "dest_ip": dest_ip,
+        "protocol": protocol,
+        "ttl": ttl,
+        "packet_size": packet_size,
+        "ip_header_length": ip_header_length
+    }
 
-    src_port = tcp_header_unpacked[0]
-    dest_port = tcp_header_unpacked[1]
-    tcp_flags = tcp_header_unpacked[5]
-    seq_num = tcp_header_unpacked[2]
-    tcp_header_length = (tcp_header_unpacked[4] >> 12) * 4
-    print("protocol: ", protocol)
+
+def extract_packet_details(ip_header_details, protocol, packet):
     if protocol == 6:
-        print("tcp flags: ", bin(tcp_flags))
-        print("Protocol: ", protocol)
-        print("src port: ", src_port)
-        print("dest port: ", dest_port)
-        print("TTL: ", ttl)
-        print("Packet size: ", packet_size)
-        print("Source IP: ", src_ip)
-        print("Destination IP: ", dest_ip)
+        ip_header_length = ip_header_details['ip_header_length']
+        tcp_header = packet[ip_header_length + 14: ip_header_length + 34]
+        tcp_header_unpacked = struct.unpack("!HHIIHHHH", tcp_header)
 
-    time.sleep(1)
+        src_port = tcp_header_unpacked[0]
+        dest_port = tcp_header_unpacked[1]
+        tcp_flags = tcp_header_unpacked[5]
+        seq_num = tcp_header_unpacked[2]
+        tcp_header_length = (tcp_header_unpacked[4] >> 12) * 4
+        return {
+            "src_port": src_port,
+            "dest_port": dest_port,
+            "tcp_flags": tcp_flags,
+            "seq_num": seq_num,
+            "tcp_header_length": tcp_header_length
+        }
+
+
+def print_packet_details(ip_header_details, packet_details):
+    if ip_header_details['protocol'] == 6:
+        print(Fore.YELLOW + "==========TCP PACKET==========" + Style.RESET_ALL)
+        print(f"{Fore.BLUE}{'Protocol':<15}{Style.RESET_ALL}: TCP (6)")
+        print(
+            f"{Fore.BLUE}{'Source IP':<15}{Style.RESET_ALL}: {ip_header_details['src_ip']}")
+        print(
+            f"{Fore.BLUE}{'Destination IP':<15}{Style.RESET_ALL}: {ip_header_details['dest_ip']}")
+        print(
+            f"{Fore.BLUE}{'Source Port':<15}{Style.RESET_ALL}: {packet_details['src_port']}")
+        print(
+            f"{Fore.BLUE}{'Destination Port':<15}{Style.RESET_ALL}: {packet_details['dest_port']}")
+        print(
+            f"{Fore.BLUE}{'Sequence Number':<15}{Style.RESET_ALL}: {packet_details['seq_num']}")
+        print(
+            f"{Fore.BLUE}{'TTL':<15}{Style.RESET_ALL}: {ip_header_details['ttl']}")
+        print(
+            f"{Fore.BLUE}{'Packet Size':<15}{Style.RESET_ALL}: {ip_header_details['packet_size']} bytes")
+        print(
+            f"{Fore.BLUE}{'TCP Flags':<15}{Style.RESET_ALL}: {bin(packet_details['tcp_flags'])}")
+        print(Fore.YELLOW + "=======================================\n" + Style.RESET_ALL)
+
+
+while True:
+    packet, addr = sock.recvfrom(65565)  # for packets upto size 65565
+
+    ip_header_details = extract_ip_header(packet)
+    packet_details = extract_packet_details(
+        ip_header_details, ip_header_details['protocol'], packet)
+    if packet_details and packet_details['dest_port'] == 4445:
+        print_packet_details(ip_header_details, packet_details)
+    else:
+        continue
