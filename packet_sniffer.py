@@ -4,7 +4,7 @@ import struct
 from colorama import Fore, Style
 try:
     sock = socket(AF_PACKET, SOCK_RAW, ntohs(0x0003))  # ipv4, tcp
-    sock.bind(("lo", 0))
+    sock.bind(("wlan0", 0))
     print(Fore.GREEN + "[+] Socket created Succesfully." + Style.RESET_ALL)
 except error as err:
     print(Fore.RED + "[-] Couldn't create socket", err, Style.RESET_ALL)
@@ -68,25 +68,26 @@ def extract_packet_details(ip_header_details, protocol, packet):
 
 def print_packet_details(ip_header_details, packet_details):
     if ip_header_details['protocol'] == 6:
-        print(Fore.YELLOW + "==========TCP PACKET==========" + Style.RESET_ALL)
-        print(f"{Fore.BLUE}{'Protocol':<15}{Style.RESET_ALL}: TCP (6)")
+        print(Fore.LIGHTCYAN_EX + "==========TCP PACKET==========" + Style.RESET_ALL)
+        print(f"{Fore.LIGHTRED_EX}{'Protocol':<15}{Style.RESET_ALL}: TCP (6)")
         print(
-            f"{Fore.BLUE}{'Source IP':<15}{Style.RESET_ALL}: {ip_header_details['src_ip']}")
+            f"{Fore.LIGHTRED_EX}{'Source IP':<15}{Style.RESET_ALL}: {ip_header_details['src_ip']}")
         print(
-            f"{Fore.BLUE}{'Destination IP':<15}{Style.RESET_ALL}: {ip_header_details['dest_ip']}")
+            f"{Fore.LIGHTRED_EX}{'Destination IP':<15}{Style.RESET_ALL}: {ip_header_details['dest_ip']}")
         print(
-            f"{Fore.BLUE}{'Source Port':<15}{Style.RESET_ALL}: {packet_details['src_port']}")
+            f"{Fore.LIGHTRED_EX}{'Source Port':<15}{Style.RESET_ALL}: {packet_details['src_port']}")
         print(
-            f"{Fore.BLUE}{'Destination Port':<15}{Style.RESET_ALL}: {packet_details['dest_port']}")
+            f"{Fore.LIGHTRED_EX}{'Destination Port':<15}{Style.RESET_ALL}: {packet_details['dest_port']}")
         print(
-            f"{Fore.BLUE}{'Sequence Number':<15}{Style.RESET_ALL}: {packet_details['seq_num']}")
+            f"{Fore.LIGHTRED_EX}{'Sequence Number':<15}{Style.RESET_ALL}: {packet_details['seq_num']}")
         print(
-            f"{Fore.BLUE}{'TTL':<15}{Style.RESET_ALL}: {ip_header_details['ttl']}")
+            f"{Fore.LIGHTRED_EX}{'TTL':<15}{Style.RESET_ALL}: {ip_header_details['ttl']}")
         print(
-            f"{Fore.BLUE}{'Packet Size':<15}{Style.RESET_ALL}: {ip_header_details['packet_size']} bytes")
+            f"{Fore.LIGHTRED_EX}{'Packet Size':<15}{Style.RESET_ALL}: {ip_header_details['packet_size']} bytes")
         print(
-            f"{Fore.BLUE}{'TCP Flags':<15}{Style.RESET_ALL}: {bin(packet_details['tcp_flags'])}")
-        print(Fore.YELLOW + "=======================================\n" + Style.RESET_ALL)
+            f"{Fore.LIGHTRED_EX}{'TCP Flags':<15}{Style.RESET_ALL}: {bin(packet_details['tcp_flags'])}")
+        print(Fore.LIGHTCYAN_EX +
+              "==============================\n" + Style.RESET_ALL)
 
 
 while True:
@@ -95,7 +96,5 @@ while True:
     ip_header_details = extract_ip_header(packet)
     packet_details = extract_packet_details(
         ip_header_details, ip_header_details['protocol'], packet)
-    if packet_details and packet_details['dest_port'] == 4445:
+    if packet_details and packet_details['src_port'] != 22 and packet_details['dest_port'] != 22:
         print_packet_details(ip_header_details, packet_details)
-    else:
-        continue
