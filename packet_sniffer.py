@@ -119,6 +119,6 @@ while True:
 
     packet_details = extract_packet_details(ip_header_details, ip_header_details['protocol'], packet)
 
-    if packet_details:
+    if packet_details and (packet_details["src_port"] == 22 or packet_details["dest_port"] == 22):
         print_packet_details(ip_header_details, packet_details)
         db_utils.insert_packet(ip_header_details, packet_details)

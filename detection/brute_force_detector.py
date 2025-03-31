@@ -7,7 +7,7 @@ DB_NAME = "../packet_log.db"
 
 syn_attempts = defaultdict(list) # {IP: [timestamps]}
 
-ATTEMPT_LIMIT = 5
+ATTEMPT_LIMIT = 10
 TIME_WINDOW = 10
 AUTH_PORTS = {22}
 
@@ -23,7 +23,7 @@ def detect_attacks(src_ip, timestamp):
 
     valid_timestamps = []
     for t in syn_attempts[src_ip]:
-        if timestamp_seconds <= TIME_WINDOW:
+        if timestamp_seconds - t <= TIME_WINDOW:
             valid_timestamps.append(t)
     syn_attempts[src_ip] = valid_timestamps
 
@@ -32,11 +32,15 @@ def detect_attacks(src_ip, timestamp):
 
 def fetch_packet_data():
     try:
+        current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         conn = sqlite3.connect(DB_NAME)
         cur = conn.cursor()
-        cur.execute("SELECT src_ip, tcp_flags, timestamp FROM packets WHERE dest_port = 22 AND tcp_flags = '10'")
+        query = """SELECT src_ip, tcp_flags, timestamp FROM packets WHERE dest_port = 22 AND tcp_flags = '10' AND timestamp >= ?"""
+        cur.execute(query, (current_time,))
         packets = cur.fetchall()
         conn.close()
+
+        print(f"Fetched {len(packets)} packets")
 
         for packet in packets:
             src_ip = packet[0]
@@ -52,3 +56,4 @@ if __name__ == "__main__":
     print("[+] Brute Force Detector Started. Monitoring SYN Packets...\n")
     while True:
         fetch_packet_data()
+        time.sleep(5)
