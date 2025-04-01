@@ -56,8 +56,6 @@ def extract_packet_details(ip_header_details, protocol, packet):
         tcp_header = packet[ip_header_length + 14: ip_header_length + 34]
         tcp_header_unpacked = struct.unpack("!HHIIHHHH", tcp_header)
 
-        print(f"[ DEBUG ] Unpacked TCP packet: {tcp_header_unpacked}")
-
         src_port = tcp_header_unpacked[0]
         dest_port = tcp_header_unpacked[1]
         raw_flags = tcp_header_unpacked[4]
@@ -67,8 +65,6 @@ def extract_packet_details(ip_header_details, protocol, packet):
 
         payload_offset = ip_header_length + tcp_header_length + 14
         payload = packet[payload_offset:]
-
-        print(f"[ DEBUG ] Raw TCP Flags (Binary): {bin(tcp_flags)}")
 
 
         return {
@@ -109,16 +105,16 @@ def print_packet_details(ip_header_details, packet_details):
 
 while True:
     packet, addr = sock.recvfrom(65565)  # for packets upto size 65565
-    print(f"Got packet from : {addr}")
+    # print(f"Got packet from : {addr}")
 
     local_time = time.localtime()
     timestamp = time.strftime("%Y-%m-%d %H:%M:%S", local_time)
-    print(f"Timestamp: {timestamp}")
+    # print(f"Timestamp: {timestamp}")
 
     ip_header_details = extract_ip_header(packet)
 
     packet_details = extract_packet_details(ip_header_details, ip_header_details['protocol'], packet)
 
-    if packet_details and (packet_details["src_port"] == 22 or packet_details["dest_port"] == 22):
+    if packet_details:
         print_packet_details(ip_header_details, packet_details)
         db_utils.insert_packet(ip_header_details, packet_details)

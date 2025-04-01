@@ -56,4 +56,3 @@ if __name__ == "__main__":
     print("[+] Brute Force Detector Started. Monitoring SYN Packets...\n")
     while True:
         fetch_packet_data()
-        time.sleep(5)
