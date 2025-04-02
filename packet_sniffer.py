@@ -66,7 +66,6 @@ def extract_packet_details(ip_header_details, protocol, packet):
         payload_offset = ip_header_length + tcp_header_length + 14
         payload = packet[payload_offset:]
 
-
         return {
             "src_port": src_port,
             "dest_port": dest_port,
@@ -74,6 +73,24 @@ def extract_packet_details(ip_header_details, protocol, packet):
             "seq_num": seq_num,
             "tcp_header_length": tcp_header_length,
             "payload": payload
+        }
+
+    elif protocol == 1:
+        ip_header_length = ip_header_details['ip_header_length']
+        icmp_header = packet[ip_header_length + 14:ip_header_length + 22]
+
+        icmp_type, icmp_code, icmp_checksum, icmp_id, icmp_seq = struct.unpack(
+            '!BBHHH', icmp_header)
+
+        icmp_payload = icmp_header[ip_header_length + 22:]
+
+        return {
+            "type": icmp_type,
+            "code": icmp_code,
+            "checksum": icmp_checksum,
+            "id": icmp_id,
+            "sequence": icmp_seq,
+            "payload": icmp_payload
         }
 
 
@@ -98,7 +115,31 @@ def print_packet_details(ip_header_details, packet_details):
         print(
             f"{Fore.LIGHTRED_EX}{'TCP Flags':<15}{Style.RESET_ALL}: {bin(packet_details['tcp_flags'])}")
         if packet_details.get("payload"):
-            print(f"{Fore.LIGHTRED_EX}{'Payload':<15}{Style.RESET_ALL}: {packet_details['payload'].hex()[:50]}...")
+            print(
+                f"{Fore.LIGHTRED_EX}{'Payload':<15}{Style.RESET_ALL}: {packet_details['payload'].hex()[:50]}...")
+        print(Fore.LIGHTCYAN_EX +
+              "==============================\n" + Style.RESET_ALL)
+
+    elif ip_header_details['protocol'] == 1:
+        print(Fore.LIGHTCYAN_EX + "==========ICMP PACKET==========" + Style.RESET_ALL)
+        print(f"{Fore.LIGHTRED_EX}{'Protocol':<15}{Style.RESET_ALL}: ICMP (1)")
+        print(
+            f"{Fore.LIGHTRED_EX}{'Source IP':<15}{Style.RESET_ALL}: {ip_header_details['src_ip']}")
+        print(
+            f"{Fore.LIGHTRED_EX}{'Destination IP':<15}{Style.RESET_ALL}: {ip_header_details['dest_ip']}")
+
+        icmp_type = packet_details['type']
+        icmp_code = packet_details['code']
+        if icmp_type == 8 and icmp_code == 0:
+            print(
+                f"{Fore.LIGHTRED_EX}{'ICMP Type':<15}{Style.RESET_ALL}: Echo Request (PING)")
+        elif icmp_code == 0 and icmp_type == 0:
+            print(
+                f"{Fore.LIGHTRED_EX}{'ICMP Type':<15}{Style.RESET_ALL}: Echo Reply (PING)")
+
+        print(
+            f"{Fore.LIGHTRED_EX}{'Payload':<15}{Style.RESET_ALL}: {packet_details['icmp_payload'].hex()[:50]}...")
+
         print(Fore.LIGHTCYAN_EX +
               "==============================\n" + Style.RESET_ALL)
 
@@ -113,7 +154,8 @@ while True:
 
     ip_header_details = extract_ip_header(packet)
 
-    packet_details = extract_packet_details(ip_header_details, ip_header_details['protocol'], packet)
+    packet_details = extract_packet_details(
+        ip_header_details, ip_header_details['protocol'], packet)
 
     if packet_details:
         print_packet_details(ip_header_details, packet_details)
