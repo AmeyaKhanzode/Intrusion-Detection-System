@@ -26,17 +26,31 @@ def insert_packet(ip_header_details, packet_details):
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
 
-    cur.execute("""
-        INSERT INTO packets(src_ip, dest_ip, src_port, dest_port, tcp_flags, protocol, payload)
-        VALUES (?,?,?,?,?,?,?)""", (
-                ip_header_details["src_ip"], 
-                ip_header_details["dest_ip"], 
-                packet_details["src_port"], 
-                packet_details["dest_port"], 
-                str(bin(packet_details["tcp_flags"]))[2:],
-                ip_header_details["protocol"], 
-                packet_details["payload"].hex()
-            ))
+    if ip_header_details["protocol"] == 6:
+        cur.execute("""
+            INSERT INTO packets(src_ip, dest_ip, src_port, dest_port, tcp_flags, protocol, payload)
+            VALUES (?,?,?,?,?,?,?)""", (
+                    ip_header_details["src_ip"], 
+                    ip_header_details["dest_ip"], 
+                    packet_details["src_port"], 
+                    packet_details["dest_port"], 
+                    str(bin(packet_details["tcp_flags"]))[2:],
+                    ip_header_details["protocol"], 
+                    packet_details["payload"].hex()
+                ))
+    elif ip_header_details["protocol"] == 1:
+        cur.execute("""
+            INSERT INTO packets(src_ip, dest_ip, payload)
+            VALUES (?,?,?,?,?,?,?,?)""", (
+                    ip_header_details["protocol"], 
+                    ip_header_details["src_ip"], 
+                    ip_header_details["dest_ip"], 
+                    packet_details["type"],
+                    packet_details["code"],
+                    packet_details["id"],
+                    packet_details["sequence"],
+                    packet_details["payload"].hex()
+                ))
 
     conn.commit()
     conn.close()

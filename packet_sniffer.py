@@ -137,8 +137,9 @@ def print_packet_details(ip_header_details, packet_details):
             print(
                 f"{Fore.LIGHTRED_EX}{'ICMP Type':<15}{Style.RESET_ALL}: Echo Reply (PING)")
 
-        print(
-            f"{Fore.LIGHTRED_EX}{'Payload':<15}{Style.RESET_ALL}: {packet_details['icmp_payload'].hex()[:50]}...")
+        if packet_details["payload"]:
+            print(
+                f"{Fore.LIGHTRED_EX}{'Payload':<15}{Style.RESET_ALL}: {packet_details['icmp_payload'].hex()[:50]}...")
 
         print(Fore.LIGHTCYAN_EX +
               "==============================\n" + Style.RESET_ALL)
@@ -157,6 +158,6 @@ while True:
     packet_details = extract_packet_details(
         ip_header_details, ip_header_details['protocol'], packet)
 
-    if packet_details:
+    if packet_details and ip_header_details["protocol"] == 1:
         print_packet_details(ip_header_details, packet_details)
         db_utils.insert_packet(ip_header_details, packet_details)
