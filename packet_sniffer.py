@@ -67,6 +67,8 @@ def extract_packet_details(ip_header_details, protocol, packet):
         payload = packet[payload_offset:]
 
         return {
+            "src_ip": ip_header_details["src_ip"],
+            "dest_ip": ip_header_details["dest_ip"],
             "src_port": src_port,
             "dest_port": dest_port,
             "tcp_flags": tcp_flags,
@@ -82,15 +84,35 @@ def extract_packet_details(ip_header_details, protocol, packet):
         icmp_type, icmp_code, icmp_checksum, icmp_id, icmp_seq = struct.unpack(
             '!BBHHH', icmp_header)
 
-        icmp_payload = icmp_header[ip_header_length + 22:]
+        icmp_payload = packet[ip_header_length + 22:]
 
         return {
+            "src_ip": ip_header_details["src_ip"],
+            "dest_ip": ip_header_details["dest_ip"],
             "type": icmp_type,
             "code": icmp_code,
             "checksum": icmp_checksum,
-            "id": icmp_id,
+            "identifier": icmp_id,
             "sequence": icmp_seq,
             "payload": icmp_payload
+        }
+
+    elif protocol == 17:
+        ip_header_length = ip_header_details['ip_header_length']
+        udp_header = packet[ip_header_length + 14: ip_header_length + 22]
+        src_port, dest_port, length, checksum = struct.unpack(
+            '!HHHH', udp_header)
+
+        udp_payload = packet[ip_header_length + 22:]
+
+        return {
+            "src_ip": ip_header_details["src_ip"],
+            "dest_ip": ip_header_details["dest_ip"],
+            "src_port": src_port,
+            "dest_port": dest_port,
+            "length": length,
+            "checksum": checksum,
+            "payload": udp_payload
         }
 
 
@@ -121,7 +143,7 @@ def print_packet_details(ip_header_details, packet_details):
               "==============================\n" + Style.RESET_ALL)
 
     elif ip_header_details['protocol'] == 1:
-        print(Fore.LIGHTCYAN_EX + "==========ICMP PACKET==========" + Style.RESET_ALL)
+        print(Fore.LIGHTCYAN_EX + "==========ICMP PACKET=========" + Style.RESET_ALL)
         print(f"{Fore.LIGHTRED_EX}{'Protocol':<15}{Style.RESET_ALL}: ICMP (1)")
         print(
             f"{Fore.LIGHTRED_EX}{'Source IP':<15}{Style.RESET_ALL}: {ip_header_details['src_ip']}")
@@ -139,25 +161,47 @@ def print_packet_details(ip_header_details, packet_details):
 
         if packet_details["payload"]:
             print(
-                f"{Fore.LIGHTRED_EX}{'Payload':<15}{Style.RESET_ALL}: {packet_details['icmp_payload'].hex()[:50]}...")
+                f"{Fore.LIGHTRED_EX}{'Payload':<15}{Style.RESET_ALL}: {packet_details['payload'].hex()[:50]}...")
+
+        print(Fore.LIGHTCYAN_EX +
+              "==============================\n" + Style.RESET_ALL)
+
+    elif ip_header_details['protocol'] == 17:
+        print(Fore.LIGHTCYAN_EX + "==========UDP PACKET=========" + Style.RESET_ALL)
+        print(f"{Fore.LIGHTRED_EX}{'Protocol':<15}{Style.RESET_ALL}: UDP (17)")
+        print(
+            f"{Fore.LIGHTRED_EX}{'Source IP':<15}{Style.RESET_ALL}: {ip_header_details['src_ip']}")
+        print(
+            f"{Fore.LIGHTRED_EX}{'Destination IP':<15}{Style.RESET_ALL}: {ip_header_details['dest_ip']}")
+        print(
+            f"{Fore.LIGHTRED_EX}{'Source Port':<15}{Style.RESET_ALL}: {packet_details['src_port']}")
+        print(
+            f"{Fore.LIGHTRED_EX}{'Destination Port':<15}{Style.RESET_ALL}: {packet_details['dest_port']}")
+        if packet_details["payload"]:
+            print(
+                f"{Fore.LIGHTRED_EX}{'Payload':<15}{Style.RESET_ALL}: {packet_details['payload'].hex()[:50]}...")
 
         print(Fore.LIGHTCYAN_EX +
               "==============================\n" + Style.RESET_ALL)
 
 
 while True:
-    packet, addr = sock.recvfrom(65565)  # for packets upto size 65565
-    # print(f"Got packet from : {addr}")
+    try:
+        packet, addr = sock.recvfrom(65565)  # for packets upto size 65565
+        # print(f"Got packet from : {addr}")
 
-    local_time = time.localtime()
-    timestamp = time.strftime("%Y-%m-%d %H:%M:%S", local_time)
-    # print(f"Timestamp: {timestamp}")
+        local_time = time.localtime()
+        timestamp = time.strftime("%Y-%m-%d %H:%M:%S", local_time)
+        # print(f"Timestamp: {timestamp}")
 
-    ip_header_details = extract_ip_header(packet)
+        ip_header_details = extract_ip_header(packet)
 
-    packet_details = extract_packet_details(
-        ip_header_details, ip_header_details['protocol'], packet)
+        packet_details = extract_packet_details(
+            ip_header_details, ip_header_details['protocol'], packet)
 
-    if packet_details and ip_header_details["protocol"] == 1:
-        print_packet_details(ip_header_details, packet_details)
-        db_utils.insert_packet(ip_header_details, packet_details)
+        if packet_details:
+            print_packet_details(ip_header_details, packet_details)
+            db_utils.insert_packet(ip_header_details, packet_details)
+    except KeyboardInterrupt:
+        print("\nExiting... bye bye")
+        exit(0)
