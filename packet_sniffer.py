@@ -185,6 +185,35 @@ def print_packet_details(ip_header_details, packet_details):
               "==============================\n" + Style.RESET_ALL)
 
 
+def format_mac(raw_mac):
+    return ':'.join('%02x' % b for b in raw_mac)
+
+
+def extract_arp_details(packet):
+    arp_header = struct.unpack("!HHBBH6s4s6s4s", packet[:28])
+    return {
+        "opcode": arp_header[4],
+        "sender_mac": format_mac(arp_header[5]),
+        "sender_ip": socket.inet_ntoa(arp_header[6]),
+        "target_mac": format_mac(arp_header[7]),
+        "target_ip": socket.inet_ntoa(arp_header[8])
+    }
+
+
+def print_arp_packet(arp_header_deatils):
+    print(Fore.LIGHTCYAN_EX + "==========ARP PACKET=========" + Style.RESET_ALL)
+    print(
+        f"{Fore.LIGHTRED_EX}{'Source IP':<15}{Style.RESET_ALL}: {arp_header_deatils['sender_ip']}")
+    print(
+        f"{Fore.LIGHTRED_EX}{'Targer IP':<15}{Style.RESET_ALL}: {arp_header_details['target_ip']}")
+    print(
+        f"{Fore.LIGHTRED_EX}{'Sender MAC':<15}{Style.RESET_ALL}: {arp_header_deatils['sender_mac']}")
+    print(
+        f"{Fore.LIGHTRED_EX}{'Target MAC':<15}{Style.RESET_ALL}: {arp_header_deatils['target_mac']}")
+    print(Fore.LIGHTCYAN_EX +
+          "==============================\n" + Style.RESET_ALL)
+
+
 while True:
     try:
         packet, addr = sock.recvfrom(65565)  # for packets upto size 65565
@@ -194,14 +223,22 @@ while True:
         timestamp = time.strftime("%Y-%m-%d %H:%M:%S", local_time)
         # print(f"Timestamp: {timestamp}")
 
-        ip_header_details = extract_ip_header(packet)
+        eth_header = packet[:14]
+        dest_mac, src_mac, eth_protocol = struct.unpack("!6s6sH", eth_header)
 
-        packet_details = extract_packet_details(
-            ip_header_details, ip_header_details['protocol'], packet)
+        if eth_protocol == 0x0800:
+            ip_header_details = extract_ip_header(packet)
+            packet_details = extract_packet_details(
+                ip_header_details, ip_header_details['protocol'], packet)
+
+        elif eth_protocol == 0x0806:  # basically means that its an arp packet
+            arp_header_details = extract_arp_details(packet)
 
         if packet_details:
             print_packet_details(ip_header_details, packet_details)
             db_utils.insert_packet(ip_header_details, packet_details)
+        elif arp_details:
+            print_arp_packet(arp_header_details)
     except KeyboardInterrupt:
         print("\nExiting... bye bye")
         exit(0)
