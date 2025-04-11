@@ -83,11 +83,11 @@ def fetch_packet_data():
         cur = conn.cursor()
 
         # Fetch ICMP packets (Ping Scan Detection)
-        cur.execute("SELECT src_ip, timestamp FROM packets WHERE protocol = 1 AND timestamp >= ?", (current_time,))
+        cur.execute("SELECT src_ip, timestamp FROM icmp_packets WHERE timestamp >= ?", (current_time,))
         icmp_packets = cur.fetchall()
 
         # Fetch TCP packets (Vanilla Scan, SYN Scan, Sweep Scan Detection)
-        cur.execute("SELECT src_ip, dest_port, tcp_flags, timestamp FROM packets WHERE protocol = 6 AND timestamp >= ?", (current_time,))
+        cur.execute("SELECT src_ip, dest_port, tcp_flags, timestamp FROM tcp_packets WHERE protocol = 6 AND timestamp >= ?", (current_time,))
         tcp_packets = cur.fetchall()
 
         conn.close()
@@ -114,6 +114,6 @@ def convert_to_seconds(timestamp):
         return None
 
 if __name__ == "__main__":
-    print("[+] Port Scan Detector Started. Montinoring scan attempts...\n")
+    print("[+] Port Scan Detector Started. Monitoring scan attempts...\n")
     while True:
         fetch_packet_data()

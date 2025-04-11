@@ -1,6 +1,6 @@
 import sqlite3
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from collections import defaultdict
 
 DB_NAME = "../packet_log.db"
@@ -32,11 +32,12 @@ def detect_attacks(src_ip, timestamp):
 
 def fetch_packet_data():
     try:
-        current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        cutoff_time = datetime.now() - timedelta(seconds=TIME_WINDOW)
+        cutoff_str = cutoff_time.strftime('%Y-%m-%d %H:%M:%S')
         conn = sqlite3.connect(DB_NAME)
         cur = conn.cursor()
-        query = """SELECT src_ip, tcp_flags, timestamp FROM packets WHERE dest_port = 22 AND tcp_flags = '10' AND timestamp >= ?"""
-        cur.execute(query, (current_time,))
+        query = """SELECT src_ip, tcp_flags, timestamp FROM tcp_packets WHERE dest_port = 22 AND tcp_flags = '10' AND timestamp >= ?"""
+        cur.execute(query, (cutoff_str,))
         packets = cur.fetchall()
         conn.close()
 
