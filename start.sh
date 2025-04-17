@@ -18,7 +18,7 @@ tmux split-window -h -t ids_session:1
 sleep 0.1
 tmux send-keys -t ids_session:1.1 "cd ~/CN_Project/Intrusion-Detection-System/detection/" C-m
 sleep 0.1
-tmux send-keys -t ids_session:1.1 "python3 brute_force_detector.py" C-m
+tmux send-keys -t ids_session:1.1 "sudo python3 brute_force_detector.py" C-m
 tmux split-window -v -t ids_session:1
 sleep 0.2
 tmux send-keys -t ids_session:1.2 "sudo hping3 -S -i u1000 -p 22 127.0.0.1" C-m

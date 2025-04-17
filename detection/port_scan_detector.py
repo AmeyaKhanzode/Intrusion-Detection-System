@@ -2,6 +2,7 @@ import sqlite3
 import time
 from datetime import datetime
 from collections import defaultdict
+from vanilla_scan_detector import detect_vanilla_scan
 
 DB_NAME = "../packet_log.db"
 
@@ -12,6 +13,8 @@ sweep_attempts = defaultdict(lambda: defaultdict(list))  # {Port: {IP: [timestam
 
 ATTEMPT_LIMIT = 10
 TIME_WINDOW = 10
+
+handshakes = {}
 
 # Detects Ping Scan
 def detect_icmp_scan(src_ip, timestamp):
@@ -37,30 +40,59 @@ def detect_tcp_scan(src_ip, dest_port, tcp_flags, timestamp):
         return
 
 # SYN Scan
-    if str(tcp_flags) == "10":
-        syn_attempts[src_ip].append(timestamp_seconds)
+    # if str(tcp_flags) == "10":
+    #     syn_attempts[src_ip].append(timestamp_seconds)
 
-        valid_timestamps = []
-        for t in syn_attempts[src_ip]:
-            if timestamp_seconds - t <= TIME_WINDOW:
-                valid_timestamps.append(t)
-        syn_attempts[src_ip] = valid_timestamps
+    #     valid_timestamps = []
+    #     for t in syn_attempts[src_ip]:
+    #         if timestamp_seconds - t <= TIME_WINDOW:
+    #             valid_timestamps.append(t)
+    #     syn_attempts[src_ip] = valid_timestamps
 
-        if len(syn_attempts[src_ip]) > ATTEMPT_LIMIT:
-            print(f"[ALERT] SYN Scan detected! IP {src_ip} sent {len(syn_attempts[src_ip])} SYN packets in {TIME_WINDOW} seconds.")
+    #     if len(syn_attempts[src_ip]) > ATTEMPT_LIMIT:
+    #         print(f"[ALERT] SYN Scan detected! IP {src_ip} sent {len(syn_attempts[src_ip])} SYN packets in {TIME_WINDOW} seconds.")
 
 # Vanilla Scan
-    elif str(tcp_flags) == "10010":
-        tcp_connect_attempts[src_ip].append(timestamp_seconds)
 
-        valid_timestamps = []
-        for t in tcp_connect_attempts[src_ip]:
-            if timestamp_seconds - t <= TIME_WINDOW:
-                valid_timestamps.append(t)
-        tcp_connect_attempts[src_ip] = valid_timestamps
+    detect_vanilla_scan(src_ip, dest_port, tcp_flags, timestamp)
 
-        if len(tcp_connect_attempts[src_ip]) > ATTEMPT_LIMIT:
-            print(f"[ALERT] Vanilla Scan detected! IP {src_ip} established {len(tcp_connect_attempts[src_ip])} full connections in {TIME_WINDOW} seconds.")
+    # global handshakes
+    # key = (src_ip, dest_port)
+    # reverse_key = (dest_port, src_ip)
+
+    # if str(tcp_flags) == "00010":
+    #     handshakes[key] = 1
+
+    # elif str(tcp_flags) == "00011":
+    #     if reverse_key in handshakes and handshakes[reverse_key] == 1:
+    #         handshakes[reverse_key] = 2
+
+    # elif str(tcp_flags) == "00110":
+    #     if key in handshakes and handshakes[key] == 2:
+    #         tcp_connect_attempts[src_ip].append(timestamp_seconds)
+    #         del handshakes[key]
+
+    #         valid_timestamps = []
+    #         for t in tcp_connect_attempts[src_ip]:
+    #             if timestamp_seconds - t <= TIME_WINDOW:
+    #                 valid_timestamps.append(t)
+    #         tcp_connect_attempts[src_ip] = valid_timestamps
+
+    #         if len(tcp_connect_attempts[src_ip]) > ATTEMPT_LIMIT:
+    #             print(f"[ALERT] Vanilla Scan detected! IP {src_ip} established {len(tcp_connect_attempts[src_ip])} full connections in {TIME_WINDOW} seconds.")
+
+
+    # elif tcp_flags == "10000":
+    #     tcp_connect_attempts[src_ip].append(timestamp_seconds)
+
+    #     valid_timestamps = []
+    #     for t in tcp_connect_attempts[src_ip]:
+    #         if timestamp_seconds - t <= TIME_WINDOW:
+    #             valid_timestamps.append(t)
+    #     tcp_connect_attempts[src_ip] = valid_timestamps
+
+    #     if len(tcp_connect_attempts[src_ip]) > ATTEMPT_LIMIT:
+    #         print(f"[ALERT] Vanilla Scan detected! IP {src_ip} established {len(tcp_connect_attempts[src_ip])} full connections in {TIME_WINDOW} seconds.")
 
 # Sweep Scan
     sweep_attempts[dest_port][src_ip].append(timestamp_seconds)

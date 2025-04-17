@@ -2,6 +2,7 @@ import sqlite3
 import time
 from datetime import datetime, timedelta
 from collections import defaultdict
+import iptables_handler
 
 DB_NAME = "../packet_log.db"
 
@@ -29,6 +30,7 @@ def detect_attacks(src_ip, timestamp):
 
     if len(syn_attempts[src_ip]) > ATTEMPT_LIMIT:
         print(f"Brute Force Attack detected! IP {src_ip} sent {len(syn_attempts[src_ip])} SYN packets in {TIME_WINDOW} seconds.")
+        iptables_handler.block_ip(src_ip)
 
 def fetch_packet_data():
     try:
@@ -40,8 +42,6 @@ def fetch_packet_data():
         cur.execute(query, (cutoff_str,))
         packets = cur.fetchall()
         conn.close()
-
-        print(f"Fetched {len(packets)} packets")
 
         for packet in packets:
             src_ip = packet[0]
