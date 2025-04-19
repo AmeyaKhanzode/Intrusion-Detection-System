@@ -24,7 +24,7 @@ def extract_ip_header(packet):
     ip_header_unpacked = struct.unpack("!BBHHHBBH4s4s", ip_header)
 
     '''
-        struct unpacked returns a tuple: 
+        struct unpacked returns a tuple:
         0: ip version, header length
         2: size of packet (header + payload)
         4: 3 bit flags
@@ -192,7 +192,7 @@ def format_mac(raw_mac):
 
 def extract_arp_details(packet):
     print(packet)
-    arp_header = struct.unpack("!HHBBH6s4s6s4s", packet[:28])
+    arp_header = struct.unpack("!HHBBH6s4s6s4s", packet[14:42])
     print(arp_header)
     return {
         "opcode": arp_header[4],
@@ -236,6 +236,7 @@ while True:
                     ip_header_details, ip_header_details['protocol'], packet)
 
         elif eth_protocol == 0x0806:  # ARP
+            print("[DEBUG] Got ARP packet!")
             arp_header_details = extract_arp_details(packet)
 
         if packet_details:
