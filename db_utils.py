@@ -44,6 +44,17 @@ def init_db():
         payload TEXT
     )""")
 
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS arp_packets (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+        opcode TEXT,
+        sender_mac TEXT,
+        sender_ip INTEGER,
+        target_mac INTEGER,
+        target_ip INTEGER
+    )""")
+
     conn.commit()
     conn.close()
 
@@ -86,6 +97,25 @@ def insert_packet(ip_header_details, packet_details):
                     packet_details["dest_port"],
                     packet_details["payload"].hex()
                     ))
+
+    conn.commit()
+    conn.close()
+
+
+def insert_arp_packet(arp_details):
+    conn = sqlite3.connect(DB_NAME)
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO arp_packets(opcode, sender_mac, sender_ip, target_mac, target_ip)
+        VALUES (?, ?, ?, ?, ?)
+    """, (
+        "request" if arp_details["opcode"] == 1 else "reply",
+        arp_details["sender_mac"],
+        arp_details["sender_ip"],
+        arp_details["target_mac"],
+        arp_details["target_ip"]
+    ))
 
     conn.commit()
     conn.close()

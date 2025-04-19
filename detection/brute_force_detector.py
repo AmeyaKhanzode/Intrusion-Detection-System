@@ -6,11 +6,12 @@ import iptables_handler
 
 DB_NAME = "../packet_log.db"
 
-syn_attempts = defaultdict(list) # {IP: [timestamps]}
+syn_attempts = defaultdict(list)  # {IP: [timestamps]}
 
 ATTEMPT_LIMIT = 10
 TIME_WINDOW = 10
 AUTH_PORTS = {22}
+
 
 def detect_attacks(src_ip, timestamp):
     try:
@@ -18,9 +19,13 @@ def detect_attacks(src_ip, timestamp):
     except ValueError:
         print(f"[-] Invalid timestamp format: {timestamp}")
         return
-        
+
     timestamp_seconds = timestamp_obj.timestamp()
     syn_attempts[src_ip].append(timestamp_seconds)
+
+    print(f"Detecting attacks for {src_ip} at {timestamp}")
+
+    print(f"Valid timestamps for {src_ip}: {valid_timestamps}")
 
     valid_timestamps = []
     for t in syn_attempts[src_ip]:
@@ -29,8 +34,10 @@ def detect_attacks(src_ip, timestamp):
     syn_attempts[src_ip] = valid_timestamps
 
     if len(syn_attempts[src_ip]) > ATTEMPT_LIMIT:
-        print(f"Brute Force Attack detected! IP {src_ip} sent {len(syn_attempts[src_ip])} SYN packets in {TIME_WINDOW} seconds.")
+        print(
+            f"Brute Force Attack detected! IP {src_ip} sent {len(syn_attempts[src_ip])} SYN packets in {TIME_WINDOW} seconds.")
         iptables_handler.block_ip(src_ip)
+
 
 def fetch_packet_data():
     try:
@@ -38,7 +45,7 @@ def fetch_packet_data():
         cutoff_str = cutoff_time.strftime('%Y-%m-%d %H:%M:%S')
         conn = sqlite3.connect(DB_NAME)
         cur = conn.cursor()
-        query = """SELECT src_ip, tcp_flags, timestamp FROM tcp_packets WHERE dest_port = 22 AND tcp_flags = '10' AND timestamp >= ?"""
+        query = """SELECT src_ip, tcp_flags, timestamp FROM tcp_packets WHERE dest_port = 22 AND tcp_flags = '100' AND timestamp >= ?"""
         cur.execute(query, (cutoff_str,))
         packets = cur.fetchall()
         conn.close()
@@ -49,9 +56,10 @@ def fetch_packet_data():
             timestamp = packet[2]
             if str(tcp_flags) == "10":
                 detect_attacks(src_ip, timestamp)
-    
+
     except sqlite3.Error as e:
         print(f"[-] Database error: {e}")
+
 
 if __name__ == "__main__":
     print("[+] Brute Force Detector Started. Monitoring SYN Packets...\n")

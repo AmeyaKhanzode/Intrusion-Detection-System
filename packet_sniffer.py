@@ -8,7 +8,7 @@ db_utils.init_db()
 
 try:
     sock = socket(AF_PACKET, SOCK_RAW, ntohs(0x0003))  # ipv4, tcp
-    sock.bind(("eth0", 0))
+    sock.bind(("wlan0", 0))
     print(Fore.GREEN + "[+] Socket created Succesfully." + Style.RESET_ALL)
 except error as err:
     print(Fore.RED + "[-] Couldn't create socket", err, Style.RESET_ALL)
@@ -185,33 +185,35 @@ def print_packet_details(ip_header_details, packet_details):
               "==============================\n" + Style.RESET_ALL)
 
 
-# def format_mac(raw_mac):
-#     return ':'.join('%02x' % b for b in raw_mac)
+def format_mac(raw_mac):
+    return ':'.join('%02x' % b for b in raw_mac)
 
 
-# def extract_arp_details(packet):
-#     arp_header = struct.unpack("!HHBBH6s4s6s4s", packet[:28])
-#     return {
-#         "opcode": arp_header[4],
-#         "sender_mac": format_mac(arp_header[5]),
-#         "sender_ip": socket.inet_ntoa(arp_header[6]),
-#         "target_mac": format_mac(arp_header[7]),
-#         "target_ip": socket.inet_ntoa(arp_header[8])
-#     }
+def extract_arp_details(packet):
+    print(packet)
+    arp_header = struct.unpack("!HHBBH6s4s6s4s", packet[:28])
+    print(arp_header)
+    return {
+        "opcode": arp_header[4],
+        "sender_mac": format_mac(arp_header[5]),
+        "sender_ip": inet_ntoa(arp_header[6]),
+        "target_mac": format_mac(arp_header[7]),
+        "target_ip": inet_ntoa(arp_header[8])
+    }
 
 
-# def print_arp_packet(arp_header_deatils):
-#     print(Fore.LIGHTCYAN_EX + "==========ARP PACKET=========" + Style.RESET_ALL)
-#     print(
-#         f"{Fore.LIGHTRED_EX}{'Source IP':<15}{Style.RESET_ALL}: {arp_header_deatils['sender_ip']}")
-#     print(
-#         f"{Fore.LIGHTRED_EX}{'Targer IP':<15}{Style.RESET_ALL}: {arp_header_details['target_ip']}")
-#     print(
-#         f"{Fore.LIGHTRED_EX}{'Sender MAC':<15}{Style.RESET_ALL}: {arp_header_deatils['sender_mac']}")
-#     print(
-#         f"{Fore.LIGHTRED_EX}{'Target MAC':<15}{Style.RESET_ALL}: {arp_header_deatils['target_mac']}")
-#     print(Fore.LIGHTCYAN_EX +
-#           "==============================\n" + Style.RESET_ALL)
+def print_arp_packet(arp_header_details):
+    print(Fore.LIGHTCYAN_EX + "==========ARP PACKET=========" + Style.RESET_ALL)
+    print(
+        f"{Fore.LIGHTRED_EX}{'Source IP':<15}{Style.RESET_ALL}: {arp_header_details['sender_ip']}")
+    print(
+        f"{Fore.LIGHTRED_EX}{'Targer IP':<15}{Style.RESET_ALL}: {arp_header_details['target_ip']}")
+    print(
+        f"{Fore.LIGHTRED_EX}{'Sender MAC':<15}{Style.RESET_ALL}: {arp_header_details['sender_mac']}")
+    print(
+        f"{Fore.LIGHTRED_EX}{'Target MAC':<15}{Style.RESET_ALL}: {arp_header_details['target_mac']}")
+    print(Fore.LIGHTCYAN_EX +
+          "==============================\n" + Style.RESET_ALL)
 
 
 while True:
@@ -226,19 +228,23 @@ while True:
         eth_header = packet[:14]
         dest_mac, src_mac, eth_protocol = struct.unpack("!6s6sH", eth_header)
 
+        packet_details = None
+        arp_header_details = None
+
         if eth_protocol == 0x0800:
             ip_header_details = extract_ip_header(packet)
             packet_details = extract_packet_details(
                 ip_header_details, ip_header_details['protocol'], packet)
 
-        # elif eth_protocol == 0x0806:  # basically means that its an arp packet
-        #     arp_header_details = extract_arp_details(packet)
+        elif eth_protocol == 0x0806:  # basically means that its an arp packet
+            arp_header_details = extract_arp_details(packet)
 
         if packet_details:
             print_packet_details(ip_header_details, packet_details)
             db_utils.insert_packet(ip_header_details, packet_details)
-        # elif arp_details:
-        #     print_arp_packet(arp_header_details)
+        elif arp_header_details:
+            print_arp_packet(arp_header_details)
+            db_utils.insert_arp_packet(arp_header_details)
     except KeyboardInterrupt:
         print("\nExiting... bye bye")
         exit(0)
