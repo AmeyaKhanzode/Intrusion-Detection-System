@@ -1,4 +1,4 @@
-to send tcp packets: sudo hping3 -S -p 80 192.168.1.23 -c 1
-to send udp packets: sudo hping3 --udp -p 12345 -c 1 192.168.1.23
+to send tcp packets: sudo hping3 -S --flood -p 22 192.168.x.x
+to send udp packets: sudo hping3 --udp -p 12345 -c 1 192.168.x.x
 to send arp packets: sudo arping 192.168.x.x, make sure to do sudo ip link set wlan0 promisc on
 to send icmp packets: ping 192.168.x.x
