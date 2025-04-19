@@ -1,4 +1,5 @@
 from socket import *
+import datetime
 import db_utils
 import time
 import struct
@@ -218,12 +219,9 @@ def print_arp_packet(arp_header_details):
 
 while True:
     try:
-        packet, addr = sock.recvfrom(65565)  # for packets upto size 65565
-        # print(f"Got packet from : {addr}")
+        packet, addr = sock.recvfrom(65565)  # for packets up to size 65565
 
-        local_time = time.localtime()
-        timestamp = time.strftime("%Y-%m-%d %H:%M:%S", local_time)
-        # print(f"Timestamp: {timestamp}")
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         eth_header = packet[:14]
         dest_mac, src_mac, eth_protocol = struct.unpack("!6s6sH", eth_header)
@@ -233,18 +231,26 @@ while True:
 
         if eth_protocol == 0x0800:
             ip_header_details = extract_ip_header(packet)
-            packet_details = extract_packet_details(
-                ip_header_details, ip_header_details['protocol'], packet)
+            if ip_header_details:
+                packet_details = extract_packet_details(
+                    ip_header_details, ip_header_details['protocol'], packet)
 
-        elif eth_protocol == 0x0806:  # basically means that its an arp packet
+        elif eth_protocol == 0x0806:  # ARP
             arp_header_details = extract_arp_details(packet)
 
         if packet_details:
             print_packet_details(ip_header_details, packet_details)
-            db_utils.insert_packet(ip_header_details, packet_details)
+            print(Fore.YELLOW + "[DEBUG] Current UTC time:",
+                  timestamp + Style.RESET_ALL)
+            db_utils.insert_packet(
+                ip_header_details, packet_details, timestamp)
+
         elif arp_header_details:
             print_arp_packet(arp_header_details)
-            db_utils.insert_arp_packet(arp_header_details)
+            db_utils.insert_arp_packet(arp_header_details, timestamp)
+
     except KeyboardInterrupt:
         print("\nExiting... bye bye")
         exit(0)
+    except Exception as e:
+        print(Fore.YELLOW + f"[!] Error parsing packet: {e}" + Style.RESET_ALL)

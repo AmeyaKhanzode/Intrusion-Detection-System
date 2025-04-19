@@ -6,11 +6,11 @@ import iptables_handler
 
 DB_NAME = "../packet_log.db"
 
-syn_attempts = defaultdict(list)  # {IP: [timestamps]}
+syn_attempts = defaultdict(list)
 
 ATTEMPT_LIMIT = 10
 TIME_WINDOW = 10
-AUTH_PORTS = {22}
+MONITOR_PORTS = {22}
 
 
 def detect_attacks(src_ip, timestamp):
@@ -23,45 +23,45 @@ def detect_attacks(src_ip, timestamp):
     timestamp_seconds = timestamp_obj.timestamp()
     syn_attempts[src_ip].append(timestamp_seconds)
 
-    print(f"Detecting attacks for {src_ip} at {timestamp}")
-
-    print(f"Valid timestamps for {src_ip}: {valid_timestamps}")
-
-    valid_timestamps = []
-    for t in syn_attempts[src_ip]:
-        if timestamp_seconds - t <= TIME_WINDOW:
-            valid_timestamps.append(t)
+    valid_timestamps = [t for t in syn_attempts[src_ip]
+                        if timestamp_seconds - t <= TIME_WINDOW]
     syn_attempts[src_ip] = valid_timestamps
 
-    if len(syn_attempts[src_ip]) > ATTEMPT_LIMIT:
+    if len(valid_timestamps) > ATTEMPT_LIMIT:
         print(
-            f"Brute Force Attack detected! IP {src_ip} sent {len(syn_attempts[src_ip])} SYN packets in {TIME_WINDOW} seconds.")
+            f"[!] Brute Force Attack Detected! {src_ip} sent {len(valid_timestamps)} SYN packets in {TIME_WINDOW}s.")
         iptables_handler.block_ip(src_ip)
+        syn_attempts[src_ip] = []
 
 
 def fetch_packet_data():
     try:
         cutoff_time = datetime.now() - timedelta(seconds=TIME_WINDOW)
         cutoff_str = cutoff_time.strftime('%Y-%m-%d %H:%M:%S')
+
         conn = sqlite3.connect(DB_NAME)
         cur = conn.cursor()
-        query = """SELECT src_ip, tcp_flags, timestamp FROM tcp_packets WHERE dest_port = 22 AND tcp_flags = '100' AND timestamp >= ?"""
-        cur.execute(query, (cutoff_str,))
-        packets = cur.fetchall()
-        conn.close()
 
-        for packet in packets:
-            src_ip = packet[0]
-            tcp_flags = packet[1]
-            timestamp = packet[2]
-            if str(tcp_flags) == "10":
+        for port in MONITOR_PORTS:
+            query = """
+            SELECT src_ip, tcp_flags, timestamp
+            FROM tcp_packets
+            WHERE dest_port = ? AND tcp_flags = 2 AND timestamp >= ?
+            """
+            cur.execute(query, (port, cutoff_str))
+            packets = cur.fetchall()
+
+            for src_ip, tcp_flags, timestamp in packets:
                 detect_attacks(src_ip, timestamp)
+
+        conn.close()
 
     except sqlite3.Error as e:
         print(f"[-] Database error: {e}")
 
 
 if __name__ == "__main__":
-    print("[+] Brute Force Detector Started. Monitoring SYN Packets...\n")
+    print("[+] Brute Force Detector Started. Monitoring TCP SYN packets...\n")
     while True:
         fetch_packet_data()
+        time.sleep(1)
