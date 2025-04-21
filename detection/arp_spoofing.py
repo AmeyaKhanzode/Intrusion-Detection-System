@@ -5,15 +5,15 @@ from datetime import datetime, timedelta
 
 DB_NAME = "../packet_log.db"
 
-ip_mac_map = {}
-mac_ip_map = {}
 last_checked = None
-TIME_WINDOW = 10
+TIME_WINDOW = 60
 
 
 def detect_attack(packets):
+    ip_mac_map = {}
+    mac_ip_map = {}
     for packet in packets:
-        if packet[2] == "request":
+        if packet[2] in ["request", "reply"]:
             mac_addr = packet[3]
             ip_addr = packet[4]
 
