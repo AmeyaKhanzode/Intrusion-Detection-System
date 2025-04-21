@@ -1,9 +1,9 @@
 import sqlite3
+import db_utils
 import time
 from datetime import datetime, timedelta
 from collections import defaultdict
 import iptables_handler
-
 DB_NAME = "../packet_log.db"
 
 syn_attempts = defaultdict(list)
@@ -28,9 +28,14 @@ def detect_attacks(src_ip, timestamp):
     syn_attempts[src_ip] = valid_timestamps
 
     if len(valid_timestamps) > ATTEMPT_LIMIT:
+        already_blocked = src_ip in db_utils.get_blocked_ips()
+        if already_blocked:
+            return
         print(
             f"[!] Brute Force Attack Detected! {src_ip} sent {len(valid_timestamps)} SYN packets in {TIME_WINDOW}s.")
         iptables_handler.block_ip(src_ip)
+        print(f"{src_ip} blocked by iptables!")
+        db_utils.insert_blocked_ip(src_ip)
         syn_attempts[src_ip] = []
 
 

@@ -14,3 +14,9 @@ to create arp spoof attack:
 to list all the blocked IPs: sudo iptables -L INPUT -n --line-numbers
 to unblock a certain ip: sudo iptables -D INPUT <index>       (get index from the above list)
 
+
+for syn scan: sudo hping3 -S <target> -p ++1 -c 50 -i u10000
+for fin scan: sudo hping3 -F <target> -p ++1 -c 50 -i u10000
+for null scan: sudo hping3 -U <target> -p ++1 -c 50 -i u10000
+for xmas scan: sudo hping3 -P -F -U <target> -p ++1 -c 50 -i u10000
+

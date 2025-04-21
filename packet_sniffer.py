@@ -1,10 +1,12 @@
 from socket import *
+from db_utils import get_blocked_ips
 import datetime
 import db_utils
 import time
 import struct
 from colorama import Fore, Style
 
+db_utils.clear_all_blocked_ips()
 db_utils.init_db()
 
 try:
@@ -219,6 +221,7 @@ def print_arp_packet(arp_header_details):
 
 while True:
     try:
+        blocked_ips = set(get_blocked_ips())
         packet, addr = sock.recvfrom(65565)  # for packets up to size 65565
 
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -231,7 +234,7 @@ while True:
 
         if eth_protocol == 0x0800:
             ip_header_details = extract_ip_header(packet)
-            if ip_header_details:
+            if ip_header_details and ip_header_details["src_ip"] not in blocked_ips:
                 packet_details = extract_packet_details(
                     ip_header_details, ip_header_details['protocol'], packet)
 
