@@ -18,7 +18,7 @@ sleep 0.2
 tmux split-window -v -t ids_session:0.0
 sleep 0.2
 tmux send-keys "cd ~/Intrusion-Detection-System/detection/" C-m
-tmux send-keys "python3 brute_force_detector.py" C-m
+tmux send-keys "sudo python3 brute_force_detector.py" C-m
 
 sleep 0.2
 
